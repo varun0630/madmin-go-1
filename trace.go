@@ -82,6 +82,8 @@ const (
 	TraceTablesScan
 	// TraceSystemInventory will trace per-bucket system inventory operations.
 	TraceSystemInventory
+	// TraceRepatriate will trace repatriation operations.
+	TraceRepatriate
 	// Add more here...
 
 	// TraceAll contains all valid trace modes.
