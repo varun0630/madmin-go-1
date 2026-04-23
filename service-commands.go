@@ -172,6 +172,7 @@ type ServiceTraceOpts struct {
 	Formatting        bool
 	PurgeOnDelete     bool
 	TablesScan        bool
+	Repatriate        bool
 
 	OnlyErrors    bool
 	Threshold     time.Duration
@@ -202,6 +203,7 @@ func (t ServiceTraceOpts) TraceTypes() TraceType {
 	tt.SetIf(t.Formatting, TraceFormatting)
 	tt.SetIf(t.PurgeOnDelete, TracePurgeOnDelete)
 	tt.SetIf(t.TablesScan, TraceTablesScan)
+	tt.SetIf(t.Repatriate, TraceRepatriate)
 
 	return tt
 }
