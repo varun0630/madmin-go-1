@@ -34,8 +34,9 @@ type RepatriateStartOptions struct {
 	Bucket string `json:"bucket"`
 }
 
-// RepatriateResumeOptions contains parameters for resuming a paused repatriation.
-type RepatriateResumeOptions struct {
+// RepatriateStopOptions contains parameters for stopping a repatriation.
+type RepatriateStopOptions struct {
+	// Bucket is the bucket whose repatriation session should be stopped. Required.
 	Bucket string `json:"bucket"`
 }
 
@@ -43,12 +44,10 @@ type RepatriateResumeOptions struct {
 type RepatriateStatus string
 
 const (
-	RepatriateStatusStarted           RepatriateStatus = "started"
-	RepatriateStatusCompleted         RepatriateStatus = "completed"
-	RepatriateStatusPaused            RepatriateStatus = "paused"
-	RepatriateStatusPausedBeforeWrite RepatriateStatus = "paused-before-write"
-	RepatriateStatusFailed            RepatriateStatus = "failed"
-	RepatriateStatusStopped           RepatriateStatus = "stopped"
+	RepatriateStatusStarted   RepatriateStatus = "started"
+	RepatriateStatusCompleted RepatriateStatus = "completed"
+	RepatriateStatusFailed    RepatriateStatus = "failed"
+	RepatriateStatusStopped   RepatriateStatus = "stopped"
 )
 
 // RepatBucketStatus contains the status and progress of a single bucket's repatriation session.
@@ -148,26 +147,11 @@ func (adm *AdminClient) RepatriateStatus(ctx context.Context) (RepatriateStatusI
 	return info, nil
 }
 
-// RepatriatePause pauses all running repatriation goroutines, preserving their
-// LastKey watermarks for a subsequent RepatriateResume call.
-func (adm *AdminClient) RepatriatePause(ctx context.Context) error {
-	resp, err := adm.executeMethod(ctx,
-		http.MethodPost,
-		requestData{relPath: adminAPIPrefix + "/repatriate/pause"})
-	defer closeResponse(resp)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return httpRespToErrorResponse(resp)
-	}
-	return nil
-}
-
-// RepatriateResume resumes a paused repatriation for the specified bucket,
-// continuing from the persisted LastKey watermark.
-func (adm *AdminClient) RepatriateResume(ctx context.Context, opts RepatriateResumeOptions) error {
+// RepatriateStop stops a running repatriation for the specified bucket. The
+// session transitions to "stopped" and any in-flight cross-pool moves are
+// rolled back so the source pool remains the consistent home for affected
+// objects.
+func (adm *AdminClient) RepatriateStop(ctx context.Context, opts RepatriateStopOptions) error {
 	body, err := json.Marshal(opts)
 	if err != nil {
 		return err
@@ -176,7 +160,7 @@ func (adm *AdminClient) RepatriateResume(ctx context.Context, opts RepatriateRes
 	resp, err := adm.executeMethod(ctx,
 		http.MethodPost,
 		requestData{
-			relPath: adminAPIPrefix + "/repatriate/resume",
+			relPath: adminAPIPrefix + "/repatriate/stop",
 			content: body,
 		})
 	defer closeResponse(resp)
