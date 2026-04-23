@@ -65,6 +65,10 @@ type RepatBucketStatus struct {
 	NumObjects      uint64           `json:"numObjects"`
 	NumVersions     uint64           `json:"numVersions"`
 	BytesDone       uint64           `json:"bytesDone"`
+	BytesTotal      uint64           `json:"bytesTotal"`
+	// ETASeconds is nil when ETA cannot be computed (session paused, no
+	// bytes done yet, or BytesTotal unknown).
+	ETASeconds *int64 `json:"etaSeconds,omitempty"`
 }
 
 // RepatriateStatusInfo contains the current status of all bucket repatriation sessions.
