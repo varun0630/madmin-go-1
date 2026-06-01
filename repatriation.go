@@ -24,7 +24,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"net/url"
 	"time"
 )
 
@@ -73,28 +72,6 @@ type RepatBucketStatus struct {
 // RepatriateStatusInfo contains the current status of all bucket repatriation sessions.
 type RepatriateStatusInfo struct {
 	Buckets []RepatBucketStatus `json:"buckets"`
-}
-
-// RepatriateInventoryVersion is a single object version from the repatriation inventory.
-type RepatriateInventoryVersion struct {
-	VersionID      string `json:"versionId,omitempty"`
-	Size           int64  `json:"size"`
-	IsLatest       bool   `json:"isLatest"`
-	IsDeleteMarker bool   `json:"isDeleteMarker,omitempty"`
-	IsTiered       bool   `json:"isTiered"`
-}
-
-// RepatriateInventoryObject is a single object entry from the repatriation inventory.
-type RepatriateInventoryObject struct {
-	Key      string                       `json:"key"`
-	Versions []RepatriateInventoryVersion `json:"versions"`
-}
-
-// RepatriateInventoryInfo contains the tiered objects discovered by the most
-// recent inventory run for a bucket.
-type RepatriateInventoryInfo struct {
-	Bucket  string                      `json:"bucket"`
-	Objects []RepatriateInventoryObject `json:"objects"`
 }
 
 // RepatriateStart starts a repatriation operation for the specified bucket.
@@ -174,36 +151,3 @@ func (adm *AdminClient) RepatriateStop(ctx context.Context, opts RepatriateStopO
 	return nil
 }
 
-// RepatriateInventory returns the tiered objects discovered by the most recent
-// inventory run for the given bucket. The inventory CSV must still exist in the
-// bucket (it is not deleted after parsing).
-func (adm *AdminClient) RepatriateInventory(ctx context.Context, bucket string) (RepatriateInventoryInfo, error) {
-	var info RepatriateInventoryInfo
-
-	queryValues := url.Values{}
-	queryValues.Set("bucket", bucket)
-
-	resp, err := adm.executeMethod(ctx,
-		http.MethodGet,
-		requestData{
-			relPath:     adminAPIPrefix + "/repatriate/inventory",
-			queryValues: queryValues,
-		})
-	defer closeResponse(resp)
-	if err != nil {
-		return info, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return info, httpRespToErrorResponse(resp)
-	}
-
-	respBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return info, err
-	}
-	if err = json.Unmarshal(respBytes, &info); err != nil {
-		return info, err
-	}
-	return info, nil
-}
